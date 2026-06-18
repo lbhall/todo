@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}My todos{% endblock %}
+{% block content %}
+    <h2>My todos</h2>
+
+    <div class="tabs">
+        <a class="tab {% if not active_project %}active{% endif %}"
+           href="{% if active_tag %}?tag={{ active_tag.name|urlencode }}{% else %}{% url 'todo_list' %}{% endif %}">All</a>
+        {% for project in projects %}
+            <a class="tab {% if active_project and active_project.pk == project.pk %}active{% endif %}"
+               href="?project={{ project.pk }}{% if active_tag %}&tag={{ active_tag.name|urlencode }}{% endif %}">{{ project.name }}</a>
+        {% endfor %}
+        <form class="new-project-form" method="post" action="{% url 'project_add' %}">
+            {% csrf_token %}
+            {{ project_form.name }}
+            <button type="submit">+ Project</button>
+        </form>
+    </div>
+
+    {% if project_form.errors %}
+        <div class="errorlist">{{ project_form.name.errors }}</div>
+    {% endif %}
+
+    {% if used_tags %}
+        <div class="chips">
+            <span class="label">tags:</span>
+            <a class="chip clear {% if not active_tag %}active{% endif %}"
+               href="{% if active_project %}?project={{ active_project.pk }}{% else %}{% url 'todo_list' %}{% endif %}">All tags</a>
+            {% for tag in used_tags %}
+                <a class="chip {% if active_tag and active_tag.pk == tag.pk %}active{% endif %}"
+                   href="?{% if active_project %}project={{ active_project.pk }}&{% endif %}tag={{ tag.name|urlencode }}">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form class="add-form" method="post" action="{% url 'todo_add' %}">
+        {% csrf_token %}
+        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
+        {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
+        {{ todo_form.title }}
+        {{ todo_form.project }}
+        {{ todo_form.tags_text }}
+        <button type="submit">Add</button>
+        {% if todo_form.title.errors %}<div class="errorlist">{{ todo_form.title.errors }}</div>{% endif %}
+        {% if todo_form.project.errors %}<div class="errorlist">{{ todo_form.project.errors }}</div>{% endif %}
+        {% if todo_form.tags_text.errors %}<div class="errorlist">{{ todo_form.tags_text.errors }}</div>{% endif %}
+    </form>
+
+    {% if todos %}
+        <ul class="todos">
+            {% for todo in todos %}
+                <li class="{% if todo.done %}done{% endif %}">
+                    <form class="inline" method="post" action="{% url 'todo_toggle' todo.pk %}">
+                        {% csrf_token %}
+                        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
+                        {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
+                        <button type="submit" title="Toggle done">
+                            {% if todo.done %}[x]{% else %}[ ]{% endif %}
+                        </button>
+                    </form>
+                    <span class="title">
+                        {{ todo.title }}
+                        {% for t in todo.tags.all %}<span class="row-tag">{{ t.name }}</span>{% endfor %}
+                    </span>
+                    {% if not active_project and todo.project %}
+                        <span class="project-tag">{{ todo.project.name }}</span>
+                    {% endif %}
+                    <a href="{% url 'todo_edit' todo.pk %}{% if active_project %}?project={{ active_project.pk }}{% endif %}{% if active_tag %}{% if active_project %}&{% else %}?{% endif %}tag={{ active_tag.name|urlencode }}{% endif %}">edit</a>
+                    <form class="inline" method="post" action="{% url 'todo_delete' todo.pk %}">
+                        {% csrf_token %}
+                        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
+                        {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
+                        <button type="submit" class="link" title="Delete">delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="color:#666">
+            {% if active_project and active_tag %}No todos in "{{ active_project.name }}" tagged "{{ active_tag.name }}".
+            {% elif active_project %}No todos in "{{ active_project.name }}" yet.
+            {% elif active_tag %}No todos tagged "{{ active_tag.name }}".
+            {% else %}No todos yet — add one above.{% endif %}
+        </p>
+    {% endif %}
+{% endblock %}

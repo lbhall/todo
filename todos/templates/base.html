@@ -1,0 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Todo{% endblock %}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+        header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ddd; padding-bottom: .5rem; margin-bottom: 1.5rem; }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        header nav { font-size: .9rem; color: #666; }
+        header nav a, header nav button { color: #06c; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font: inherit; }
+        header nav a:hover, header nav button:hover { text-decoration: underline; }
+        form.inline { display: inline; }
+        ul.todos { list-style: none; padding: 0; }
+        ul.todos li { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid #f0f0f0; }
+        ul.todos li.done .title { text-decoration: line-through; color: #888; }
+        ul.todos li.done .row-tag { text-decoration: none; color: #336; }
+        ul.todos .title { flex: 1; }
+        .add-form input[type=text] { width: 55%; padding: .4rem; }
+        .add-form select { padding: .4rem; }
+        .add-form button { padding: .4rem .8rem; }
+        .errorlist { color: #c00; margin: .25rem 0; padding-left: 1rem; }
+        .helptext, .helptext ul { color: #666; font-size: .85rem; }
+        button.link { color: #c33; }
+        .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; border-bottom: 1px solid #ddd; margin-bottom: 1rem; }
+        .tab { padding: .4rem .8rem; text-decoration: none; color: #555; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; margin-bottom: -1px; }
+        .tab:hover { background: #f5f5f5; }
+        .tab.active { color: #222; background: #fff; border-color: #ddd; font-weight: 600; }
+        .new-project-form { margin-left: auto; display: flex; gap: .25rem; padding-bottom: .25rem; }
+        .new-project-form input[type=text] { padding: .3rem; font-size: .85rem; }
+        .new-project-form button { padding: .3rem .6rem; font-size: .85rem; }
+        .project-tag { font-size: .75rem; color: #666; background: #f0f0f0; padding: .1rem .4rem; border-radius: 3px; }
+        .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: .25rem 0 1rem; align-items: center; font-size: .85rem; }
+        .chips .label { color: #888; margin-right: .25rem; }
+        .chip { color: #444; background: #eef; padding: .15rem .55rem; border-radius: 12px; text-decoration: none; border: 1px solid transparent; }
+        .chip:hover { background: #dde; }
+        .chip.active { background: #245; color: #fff; }
+        .chip.clear { background: transparent; color: #888; border-color: #ddd; }
+        .chip.clear:hover { background: #f5f5f5; }
+        .row-tag { display: inline-block; font-size: .7rem; color: #336; background: #eef; padding: .05rem .4rem; border-radius: 10px; margin-right: .15rem; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Todo</h1>
+    <nav>
+        {% if user.is_authenticated %}
+            Logged in as <strong>{{ user.username }}</strong> ·
+            <form class="inline" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="link">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a> · <a href="{% url 'signup' %}">Sign up</a>
+        {% endif %}
+    </nav>
+</header>
+<main>
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

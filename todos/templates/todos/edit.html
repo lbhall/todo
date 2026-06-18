@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Edit todo{% endblock %}
+{% block content %}
+    <h2>Edit todo</h2>
+    <form method="post">
+        {% csrf_token %}
+        <p>
+            <label>Title</label><br>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="errorlist">{{ form.title.errors }}</div>{% endif %}
+        </p>
+        <p>
+            <label>Project</label><br>
+            {{ form.project }}
+            {% if form.project.errors %}<div class="errorlist">{{ form.project.errors }}</div>{% endif %}
+        </p>
+        <p>
+            <label>Tags (comma-separated)</label><br>
+            {{ form.tags_text }}
+            {% if form.tags_text.errors %}<div class="errorlist">{{ form.tags_text.errors }}</div>{% endif %}
+        </p>
+        <button type="submit">Save</button>
+        <a href="/{{ list_qs }}" style="margin-left:.5rem">Cancel</a>
+    </form>
+{% endblock %}
