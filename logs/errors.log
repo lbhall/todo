@@ -1,0 +1,2 @@
+2026-06-19 19:25:13,401 [ERROR] django.request: SMOKE TEST: simulated 5xx from shell at startup
+2026-06-19 19:25:13,402 [ERROR] todos: SMOKE TEST: app-level error
