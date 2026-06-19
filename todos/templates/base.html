@@ -3,13 +3,14 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{% block title %}Todo{% endblock %}</title>
+    <title>{% block title %}My Todos{% endblock %}</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
         header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ddd; padding-bottom: .5rem; margin-bottom: 1.5rem; }
         header h1 { margin: 0; font-size: 1.4rem; }
-        header nav { font-size: .9rem; color: #666; }
-        header nav a, header nav button { color: #06c; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font: inherit; }
+        header nav { font-size: .9rem; color: #666; display: flex; align-items: center; gap: .6rem; }
+        header nav .nav-user { line-height: 1.6; }
+        header nav a, header nav .link { color: #06c; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font: inherit; }
         header nav a:hover, header nav button:hover { text-decoration: underline; }
         form.inline { display: inline; }
         ul.todos { list-style: none; padding: 0; }
@@ -17,36 +18,81 @@
         ul.todos li.done .title { text-decoration: line-through; color: #888; }
         ul.todos li.done .row-tag { text-decoration: none; color: #336; }
         ul.todos .title { flex: 1; }
-        .add-form input[type=text] { width: 55%; padding: .4rem; }
-        .add-form select { padding: .4rem; }
+        .add-form { display: flex; flex-direction: column; gap: .25rem; margin-bottom: 1rem; }
+        .add-form .add-row { display: flex; gap: .5rem; align-items: center; }
+        .add-form .add-row input[type=text] { flex: 1; padding: .4rem; }
+        .add-form select, .add-form input[type=date] { padding: .35rem; }
+        .add-form input[type=text] { padding: .4rem; }
         .add-form button { padding: .4rem .8rem; }
+        .add-form details.add-more > summary { cursor: pointer; user-select: none; list-style: none; color: #aaa; padding: .35rem 0; width: 100%; text-align: center; border-radius: 4px; transition: background .1s, color .1s; }
+        .add-form details.add-more > summary::-webkit-details-marker { display: none; }
+        .add-form details.add-more > summary::before { content: '▾'; display: inline-block; font-size: 1.1rem; line-height: 1; transform: scaleX(2.2); transition: transform .15s; transform-origin: center; }
+        .add-form details.add-more[open] > summary::before { transform: scaleX(2.2) rotate(180deg); }
+        .add-form details.add-more > summary:hover { color: #666; background: #f5f5f5; }
+        .add-form .add-more-fields { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: .35rem 0 .25rem; }
+        .add-form .add-more-fields label { font-size: .8rem; color: #555; display: flex; align-items: center; gap: .35rem; }
         .errorlist { color: #c00; margin: .25rem 0; padding-left: 1rem; }
         .helptext, .helptext ul { color: #666; font-size: .85rem; }
         button.link { color: #c33; }
-        .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; border-bottom: 1px solid #ddd; margin-bottom: 1rem; }
-        .tab { padding: .4rem .8rem; text-decoration: none; color: #555; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; margin-bottom: -1px; }
-        .tab:hover { background: #f5f5f5; }
-        .tab.active { color: #222; background: #fff; border-color: #ddd; font-weight: 600; }
-        .new-project-form { margin-left: auto; display: flex; gap: .25rem; padding-bottom: .25rem; }
-        .new-project-form input[type=text] { padding: .3rem; font-size: .85rem; }
-        .new-project-form button { padding: .3rem .6rem; font-size: .85rem; }
+        .btn-new-project { padding: .25rem .65rem; background: #eef; color: #245; border: 1px solid #ccd; border-radius: 4px; cursor: pointer; font: inherit; font-size: .85rem; }
+        .btn-new-project:hover { background: #ddf; }
+        details.card { border: 1px solid #ddd; border-radius: 6px; margin: 1rem 0; background: #fff; }
+        details.card[open] { box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+        details.card summary { padding: .55rem .85rem; cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: .5rem; list-style: none; }
+        details.card summary::-webkit-details-marker { display: none; }
+        details.card summary::before { content: '▸'; color: #888; font-size: .85rem; transition: transform .15s; display: inline-block; }
+        details.card[open] summary::before { transform: rotate(90deg); }
+        details.card summary:hover { background: #fafafa; }
+        details.card[open] summary { border-bottom: 1px solid #eee; }
+        details.card .card-title { font-weight: 600; }
+        details.card .card-count { color: #888; font-size: .85rem; margin-left: auto; }
+        details.card ul.todos { padding: 0 .85rem; margin: 0; }
+        details.card ul.todos li:last-child { border-bottom: none; }
+        details.card .card-empty { padding: .6rem .85rem; color: #888; font-size: .85rem; font-style: italic; margin: 0; }
+        details.card.draggable > summary { cursor: grab; }
+        details.card.draggable > summary:active { cursor: grabbing; }
+        details.card.dragging { opacity: .45; }
+        .edit-btn { color: #888; text-decoration: none; font-size: 1.05rem; line-height: 1; padding: .15rem .35rem; border-radius: 3px; }
+        .edit-btn:hover { color: #06c; background: #eef; }
+        .delete-btn { color: #c33; background: none; border: none; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; padding: .15rem .35rem; border-radius: 3px; }
+        .delete-btn:hover { color: #800; background: #fee; }
+        .todo-check { cursor: pointer; width: 1.05rem; height: 1.05rem; margin: 0; vertical-align: middle; }
+        .edit-dialog { border: 1px solid #ccc; border-radius: 8px; padding: 0; max-width: 480px; width: 92%; box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+        .edit-dialog::backdrop { background: rgba(0,0,0,.35); }
+        .modal-form { padding: 1.25rem 1.5rem; margin: 0; }
+        .modal-form h3 { margin: 0 0 .9rem; font-size: 1.05rem; }
+        .modal-form p { margin: .6rem 0; }
+        .modal-form label { display: block; font-size: .85rem; color: #555; margin-bottom: .15rem; }
+        .modal-form input[type=text], .modal-form input[type=date], .modal-form select { width: 100%; padding: .4rem; box-sizing: border-box; }
+        .modal-buttons { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+        .modal-buttons button { padding: .4rem .9rem; }
+        .modal-buttons .modal-cancel { background: transparent; border: 1px solid #ccc; cursor: pointer; }
         .project-tag { font-size: .75rem; color: #666; background: #f0f0f0; padding: .1rem .4rem; border-radius: 3px; }
-        .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: .25rem 0 1rem; align-items: center; font-size: .85rem; }
-        .chips .label { color: #888; margin-right: .25rem; }
+        .due-date { display: inline-block; font-size: .75rem; color: #855; background: #fef0e8; padding: .1rem .4rem; border-radius: 3px; }
+        ul.todos li.done .due-date { color: #aaa; background: #f5f5f5; }
+        .filter-bar { display: flex; align-items: stretch; gap: 1rem; margin: .25rem 0 1.75rem; flex-wrap: wrap; font-size: .85rem; }
+        .filter-group { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+        .filter-label { font-size: .7rem; color: #888; text-transform: uppercase; letter-spacing: .04em; }
+        .filter-pills { display: flex; flex-wrap: wrap; gap: .3rem; }
+        .filter-divider { width: 1px; background: #ddd; align-self: stretch; }
         .chip { color: #444; background: #eef; padding: .15rem .55rem; border-radius: 12px; text-decoration: none; border: 1px solid transparent; }
         .chip:hover { background: #dde; }
         .chip.active { background: #245; color: #fff; }
         .chip.clear { background: transparent; color: #888; border-color: #ddd; }
         .chip.clear:hover { background: #f5f5f5; }
         .row-tag { display: inline-block; font-size: .7rem; color: #336; background: #eef; padding: .05rem .4rem; border-radius: 10px; margin-right: .15rem; }
+        dl.timestamps { margin-top: 2rem; font-size: .85rem; color: #666; display: grid; grid-template-columns: max-content 1fr; gap: .1rem .75rem; }
+        dl.timestamps dt { font-weight: 600; }
+        dl.timestamps dd { margin: 0; }
     </style>
 </head>
 <body>
 <header>
-    <h1>Todo</h1>
+    <h1>My Todos</h1>
     <nav>
         {% if user.is_authenticated %}
-            Logged in as <strong>{{ user.username }}</strong> ·
+            {% block header_actions %}{% endblock %}
+            <span class="nav-user">Logged in as <strong>{{ user.username }}</strong> ·</span>
             <form class="inline" method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="link">Logout</button>

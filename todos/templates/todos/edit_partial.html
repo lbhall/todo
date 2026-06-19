@@ -1,0 +1,28 @@
+<form method="post" action="{% url 'todo_edit' todo.pk %}" class="modal-form">
+    {% csrf_token %}
+    <h3>Edit todo</h3>
+    <p>
+        <label for="id_title">Description</label>
+        {{ form.title }}
+        {% if form.title.errors %}<div class="errorlist">{{ form.title.errors }}</div>{% endif %}
+    </p>
+    <p>
+        <label for="id_project">Project</label>
+        {{ form.project }}
+        {% if form.project.errors %}<div class="errorlist">{{ form.project.errors }}</div>{% endif %}
+    </p>
+    <p>
+        <label for="id_tags_text">Tags (comma-separated)</label>
+        {{ form.tags_text }}
+        {% if form.tags_text.errors %}<div class="errorlist">{{ form.tags_text.errors }}</div>{% endif %}
+    </p>
+    <p>
+        <label for="id_due_date">Due date</label>
+        {{ form.due_date }}
+        {% if form.due_date.errors %}<div class="errorlist">{{ form.due_date.errors }}</div>{% endif %}
+    </p>
+    <div class="modal-buttons">
+        <button type="submit">Save</button>
+        <button type="button" class="modal-cancel">Cancel</button>
+    </div>
+</form>

@@ -19,7 +19,18 @@
             {{ form.tags_text }}
             {% if form.tags_text.errors %}<div class="errorlist">{{ form.tags_text.errors }}</div>{% endif %}
         </p>
+        <p>
+            <label>Due date</label><br>
+            {{ form.due_date }}
+            {% if form.due_date.errors %}<div class="errorlist">{{ form.due_date.errors }}</div>{% endif %}
+        </p>
         <button type="submit">Save</button>
         <a href="/{{ list_qs }}" style="margin-left:.5rem">Cancel</a>
     </form>
+
+    <dl class="timestamps">
+        <dt>Created</dt><dd>{{ todo.created_at|date:"Y-m-d H:i" }}</dd>
+        <dt>Last updated</dt><dd>{{ todo.updated_at|date:"Y-m-d H:i" }}</dd>
+        <dt>Completed</dt><dd>{% if todo.completed_at %}{{ todo.completed_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</dd>
+    </dl>
 {% endblock %}

@@ -32,9 +32,10 @@ class TodoForm(forms.ModelForm):
 
     class Meta:
         model = Todo
-        fields = ['title', 'project']
+        fields = ['title', 'project', 'due_date']
         widgets = {
             'title': forms.TextInput(attrs={'placeholder': 'What needs doing?', 'autofocus': True}),
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, user=None, **kwargs):

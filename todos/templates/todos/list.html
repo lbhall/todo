@@ -1,86 +1,275 @@
 {% extends "base.html" %}
-{% block title %}My todos{% endblock %}
+{% block title %}My Todos{% endblock %}
+
+{% block header_actions %}
+    <button type="button" id="new-project-btn" class="btn-new-project">+ Project</button>
+{% endblock %}
+
 {% block content %}
-    <h2>My todos</h2>
-
-    <div class="tabs">
-        <a class="tab {% if not active_project %}active{% endif %}"
-           href="{% if active_tag %}?tag={{ active_tag.name|urlencode }}{% else %}{% url 'todo_list' %}{% endif %}">All</a>
-        {% for project in projects %}
-            <a class="tab {% if active_project and active_project.pk == project.pk %}active{% endif %}"
-               href="?project={{ project.pk }}{% if active_tag %}&tag={{ active_tag.name|urlencode }}{% endif %}">{{ project.name }}</a>
-        {% endfor %}
-        <form class="new-project-form" method="post" action="{% url 'project_add' %}">
+    <dialog id="new-project-dialog" class="edit-dialog">
+        <form method="post" action="{% url 'project_add' %}" class="modal-form">
             {% csrf_token %}
-            {{ project_form.name }}
-            <button type="submit">+ Project</button>
+            <h3>New project</h3>
+            <p>
+                <label for="id_name">Name</label>
+                {{ project_form.name }}
+                {% if project_form.errors %}<div class="errorlist">{{ project_form.name.errors }}</div>{% endif %}
+            </p>
+            <div class="modal-buttons">
+                <button type="submit">Create</button>
+                <button type="button" class="modal-cancel">Cancel</button>
+            </div>
         </form>
-    </div>
+    </dialog>
 
-    {% if project_form.errors %}
-        <div class="errorlist">{{ project_form.name.errors }}</div>
-    {% endif %}
-
-    {% if used_tags %}
-        <div class="chips">
-            <span class="label">tags:</span>
-            <a class="chip clear {% if not active_tag %}active{% endif %}"
-               href="{% if active_project %}?project={{ active_project.pk }}{% else %}{% url 'todo_list' %}{% endif %}">All tags</a>
-            {% for tag in used_tags %}
-                <a class="chip {% if active_tag and active_tag.pk == tag.pk %}active{% endif %}"
-                   href="?{% if active_project %}project={{ active_project.pk }}&{% endif %}tag={{ tag.name|urlencode }}">{{ tag.name }}</a>
-            {% endfor %}
+    <div class="filter-bar">
+        {% if used_tags %}
+            <div class="filter-group">
+                <div class="filter-label">Tags</div>
+                <div class="filter-pills">
+                    <a class="chip clear {% if not active_tag %}active{% endif %}" href="{% querystring tag=None %}">All tags</a>
+                    {% for tag in used_tags %}
+                        <a class="chip {% if active_tag and active_tag.pk == tag.pk %}active{% endif %}"
+                           href="{% querystring tag=tag.name %}">{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="filter-divider"></div>
+        {% endif %}
+        <div class="filter-group">
+            <div class="filter-label">Status</div>
+            <div class="filter-pills">
+                <a class="chip clear {% if not active_status %}active{% endif %}" href="{% querystring status='all' %}">All</a>
+                <a class="chip {% if active_status == 'open' %}active{% endif %}" href="{% querystring status='open' %}">Open</a>
+                <a class="chip {% if active_status == 'done' %}active{% endif %}" href="{% querystring status='done' %}">Done</a>
+            </div>
         </div>
-    {% endif %}
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+            <div class="filter-label">Due</div>
+            <div class="filter-pills">
+                <a class="chip clear {% if not active_due %}active{% endif %}" href="{% querystring due=None %}">All</a>
+                <a class="chip {% if active_due == 'today' %}active{% endif %}" href="{% querystring due='today' %}">Today</a>
+                <a class="chip {% if active_due == 'future' %}active{% endif %}" href="{% querystring due='future' %}">Future</a>
+                <a class="chip {% if active_due == 'past' %}active{% endif %}" href="{% querystring due='past' %}">Past</a>
+            </div>
+        </div>
+    </div>
 
     <form class="add-form" method="post" action="{% url 'todo_add' %}">
         {% csrf_token %}
-        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
         {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
-        {{ todo_form.title }}
-        {{ todo_form.project }}
-        {{ todo_form.tags_text }}
-        <button type="submit">Add</button>
+        <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
+        {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+        <div class="add-row">
+            {{ todo_form.title }}
+            <button type="submit">Add</button>
+        </div>
+        <details class="add-more" {% if todo_form.project.errors or todo_form.tags_text.errors or todo_form.due_date.errors %}open{% endif %}>
+            <summary title="Show / hide project, tags, and due date"></summary>
+            <div class="add-more-fields">
+                <label>Project {{ todo_form.project }}</label>
+                <label>Tags {{ todo_form.tags_text }}</label>
+                <label>Due {{ todo_form.due_date }}</label>
+            </div>
+        </details>
         {% if todo_form.title.errors %}<div class="errorlist">{{ todo_form.title.errors }}</div>{% endif %}
         {% if todo_form.project.errors %}<div class="errorlist">{{ todo_form.project.errors }}</div>{% endif %}
         {% if todo_form.tags_text.errors %}<div class="errorlist">{{ todo_form.tags_text.errors }}</div>{% endif %}
+        {% if todo_form.due_date.errors %}<div class="errorlist">{{ todo_form.due_date.errors }}</div>{% endif %}
     </form>
 
-    {% if todos %}
-        <ul class="todos">
-            {% for todo in todos %}
-                <li class="{% if todo.done %}done{% endif %}">
-                    <form class="inline" method="post" action="{% url 'todo_toggle' todo.pk %}">
-                        {% csrf_token %}
-                        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
-                        {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
-                        <button type="submit" title="Toggle done">
-                            {% if todo.done %}[x]{% else %}[ ]{% endif %}
-                        </button>
-                    </form>
-                    <span class="title">
-                        {{ todo.title }}
-                        {% for t in todo.tags.all %}<span class="row-tag">{{ t.name }}</span>{% endfor %}
-                    </span>
-                    {% if not active_project and todo.project %}
-                        <span class="project-tag">{{ todo.project.name }}</span>
-                    {% endif %}
-                    <a href="{% url 'todo_edit' todo.pk %}{% if active_project %}?project={{ active_project.pk }}{% endif %}{% if active_tag %}{% if active_project %}&{% else %}?{% endif %}tag={{ active_tag.name|urlencode }}{% endif %}">edit</a>
-                    <form class="inline" method="post" action="{% url 'todo_delete' todo.pk %}">
-                        {% csrf_token %}
-                        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
-                        {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
-                        <button type="submit" class="link" title="Delete">delete</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p style="color:#666">
-            {% if active_project and active_tag %}No todos in "{{ active_project.name }}" tagged "{{ active_tag.name }}".
-            {% elif active_project %}No todos in "{{ active_project.name }}" yet.
-            {% elif active_tag %}No todos tagged "{{ active_tag.name }}".
-            {% else %}No todos yet — add one above.{% endif %}
-        </p>
-    {% endif %}
+    <div id="project-cards">
+    {% for group in groups %}
+        <details class="card draggable" open draggable="true" data-project-id="{{ group.project.pk }}">
+            <summary>
+                <span class="card-title">{{ group.project.name }}</span>
+                <span class="card-count">{{ group.todos|length }} item{{ group.todos|length|pluralize }}</span>
+            </summary>
+            {% if group.todos %}
+                <ul class="todos">
+                    {% for todo in group.todos %}
+                        <li class="{% if todo.done %}done{% endif %}">
+                            <form class="inline toggle-form" method="post" action="{% url 'todo_toggle' todo.pk %}">
+                                {% csrf_token %}
+                                {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
+                                <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
+                                {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+                                <input type="checkbox" class="todo-check" {% if todo.done %}checked{% endif %} title="Toggle done" aria-label="Mark complete">
+                            </form>
+                            <span class="title">
+                                {{ todo.title }}
+                                {% for t in todo.tags.all %}<span class="row-tag">{{ t.name }}</span>{% endfor %}
+                            </span>
+                            {% if todo.due_date %}
+                                <span class="due-date">due {{ todo.due_date|date:"M j" }}</span>
+                            {% endif %}
+                            <a href="{% url 'todo_edit' todo.pk %}{% querystring %}" class="edit-btn" title="Edit" aria-label="Edit todo">✎</a>
+                            <form class="inline" method="post" action="{% url 'todo_delete' todo.pk %}">
+                                {% csrf_token %}
+                                {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
+                                <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
+                                {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+                                <button type="submit" class="delete-btn" title="Delete" aria-label="Delete todo">✕</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="card-empty">No todos here{% if active_tag or active_status %} matching the current filters{% endif %}.</p>
+            {% endif %}
+        </details>
+    {% empty %}
+        <p style="color:#666">No projects yet — add one above, or add a todo (it'll go into "Other").</p>
+    {% endfor %}
+    </div>
+
+    <dialog id="edit-dialog" class="edit-dialog"></dialog>
+
+    <script>
+    document.addEventListener('change', e => {
+        if (!e.target.matches('.todo-check')) return;
+        const form = e.target.closest('.toggle-form');
+        if (form) form.submit();
+    });
+    </script>
+
+    <script>
+    (function () {
+        const btn = document.getElementById('new-project-btn');
+        const dlg = document.getElementById('new-project-dialog');
+        if (!btn || !dlg) return;
+        btn.addEventListener('click', () => dlg.showModal());
+        const cancel = dlg.querySelector('.modal-cancel');
+        if (cancel) cancel.addEventListener('click', () => dlg.close());
+        dlg.addEventListener('click', e => {
+            if (e.target === dlg) dlg.close();
+        });
+        // Server re-rendered the page with form errors → reopen the dialog
+        if (dlg.querySelector('.errorlist')) dlg.showModal();
+    })();
+    </script>
+
+    <script>
+    (function () {
+        const dlg = document.getElementById('edit-dialog');
+        if (!dlg) return;
+
+        function getCookie(name) {
+            const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return m ? m[2] : '';
+        }
+
+        function bindForm() {
+            const form = dlg.querySelector('form');
+            if (!form) return;
+            form.addEventListener('submit', onSubmit);
+            const cancel = dlg.querySelector('.modal-cancel');
+            if (cancel) cancel.addEventListener('click', () => dlg.close());
+        }
+
+        async function openModal(url) {
+            let res;
+            try {
+                res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+            } catch (err) {
+                console.warn('edit fetch failed', err);
+                return;
+            }
+            if (!res.ok) { console.warn('edit fetch status', res.status); return; }
+            dlg.innerHTML = await res.text();
+            dlg.showModal();
+            bindForm();
+        }
+
+        async function onSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'fetch',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: new FormData(form),
+            });
+            if (res.status === 204) {
+                dlg.close();
+                location.reload();
+                return;
+            }
+            // 400: re-render with errors
+            dlg.innerHTML = await res.text();
+            bindForm();
+        }
+
+        // Click outside the form area to close
+        dlg.addEventListener('click', e => {
+            if (e.target === dlg) dlg.close();
+        });
+
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('.edit-btn');
+            if (!btn) return;
+            // Modifier-click → let it navigate normally (open in new tab, etc.)
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            openModal(btn.href);
+        });
+    })();
+    </script>
+
+    <script>
+    (function () {
+        const container = document.getElementById('project-cards');
+        if (!container) return;
+        let dragged = null;
+
+        function getCookie(name) {
+            const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return m ? m[2] : '';
+        }
+
+        function postOrder() {
+            const ids = Array.from(container.querySelectorAll('[data-project-id]'))
+                .map(el => el.dataset.projectId);
+            const body = new URLSearchParams();
+            ids.forEach(id => body.append('order', id));
+            fetch('{% url "project_reorder" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: body,
+            }).then(r => {
+                if (!r.ok) console.warn('reorder failed', r.status);
+            });
+        }
+
+        container.addEventListener('dragstart', e => {
+            const card = e.target.closest('[data-project-id]');
+            if (!card) return;
+            dragged = card;
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        container.addEventListener('dragend', e => {
+            if (!dragged) return;
+            dragged.classList.remove('dragging');
+            dragged = null;
+            postOrder();
+        });
+
+        container.addEventListener('dragover', e => {
+            if (!dragged) return;
+            const target = e.target.closest('[data-project-id]');
+            if (!target || target === dragged) return;
+            e.preventDefault();
+            const rect = target.getBoundingClientRect();
+            const before = e.clientY < rect.top + rect.height / 2;
+            target.parentNode.insertBefore(dragged, before ? target : target.nextSibling);
+        });
+
+        container.addEventListener('drop', e => e.preventDefault());
+    })();
+    </script>
 {% endblock %}

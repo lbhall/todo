@@ -10,12 +10,19 @@ class Project(models.Model):
         related_name='projects',
     )
     name = models.CharField(max_length=80)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_catchall = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['sort_order', 'name']
         constraints = [
             models.UniqueConstraint(fields=['user', 'name'], name='unique_project_name_per_user'),
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(is_catchall=True),
+                name='one_catchall_per_user',
+            ),
         ]
 
     def __str__(self):
@@ -57,7 +64,10 @@ class Todo(models.Model):
     tags = models.ManyToManyField(Tag, blank=True, related_name='todos')
     title = models.CharField(max_length=200)
     done = models.BooleanField(default=False)
+    due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['done', 'id']
