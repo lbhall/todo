@@ -36,11 +36,11 @@
         button.link { color: #c33; }
         .btn-new-project { padding: .25rem .65rem; background: #eef; color: #245; border: 1px solid #ccd; border-radius: 4px; cursor: pointer; font: inherit; font-size: .85rem; }
         .btn-new-project:hover { background: #ddf; }
-        details.card { border: 1px solid #ddd; border-radius: 6px; margin: 1rem 0; background: #fff; }
-        details.card[open] { box-shadow: 0 1px 3px rgba(0,0,0,.04); }
-        details.card summary { padding: .55rem .85rem; cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: .5rem; list-style: none; }
+        details.card { border: 1px solid #ddd; border-left: 4px solid var(--card-accent, #ddd); border-radius: 6px; margin: 1rem 0; background: #fff; }
+        details.card[open] { box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        details.card summary { padding: .55rem .85rem; cursor: pointer; user-select: none; display: flex; align-items: center; gap: .5rem; list-style: none; }
         details.card summary::-webkit-details-marker { display: none; }
-        details.card summary::before { content: '▸'; color: #888; font-size: .85rem; transition: transform .15s; display: inline-block; }
+        details.card summary::before { content: '▸'; color: #888; font-size: .85rem; transition: transform .15s; display: inline-block; flex-shrink: 0; }
         details.card[open] summary::before { transform: rotate(90deg); }
         details.card summary:hover { background: #fafafa; }
         details.card[open] summary { border-bottom: 1px solid #eee; }
@@ -52,6 +52,11 @@
         details.card.draggable > summary { cursor: grab; }
         details.card.draggable > summary:active { cursor: grabbing; }
         details.card.dragging { opacity: .45; }
+        .card-color-btn { width: 1rem; height: 1rem; border-radius: 50%; border: 1.5px solid rgba(0,0,0,.2); cursor: pointer; padding: 0; flex-shrink: 0; background: var(--card-accent, #ddd); }
+        .card-color-btn:hover { border-color: rgba(0,0,0,.45); transform: scale(1.15); }
+        .color-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+        .color-row label { margin-bottom: 0 !important; }
+        .color-clear-btn { font-size: .75rem; color: #888; background: none; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; padding: .15rem .4rem; }
         .edit-btn { color: #888; text-decoration: none; font-size: 1.05rem; line-height: 1; padding: .15rem .35rem; border-radius: 3px; }
         .edit-btn:hover { color: #06c; background: #eef; }
         .delete-btn { color: #c33; background: none; border: none; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; padding: .15rem .35rem; border-radius: 3px; }

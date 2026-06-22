@@ -64,14 +64,16 @@ class TodoForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name']
+        fields = ['name', 'color']
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'New project name'}),
+            'color': forms.TextInput(attrs={'type': 'color', 'style': 'width:3rem;height:2rem;padding:.1rem;cursor:pointer'}),
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._user = user
+        self.fields['color'].required = False
 
     def clean_name(self):
         name = self.cleaned_data['name'].strip()
@@ -79,4 +81,31 @@ class ProjectForm(forms.ModelForm):
             raise forms.ValidationError('Name cannot be blank.')
         if self._user is not None and self._user.projects.filter(name__iexact=name).exists():
             raise forms.ValidationError(f'You already have a project named "{name}".')
+        return name
+
+
+class ProjectEditForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = ['name', 'color']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Project name'}),
+            'color': forms.TextInput(attrs={'type': 'color', 'style': 'width:3rem;height:2rem;padding:.1rem;cursor:pointer'}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._user = user
+        self.fields['color'].required = False
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if not name:
+            raise forms.ValidationError('Name cannot be blank.')
+        if self._user is not None:
+            qs = self._user.projects.filter(name__iexact=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(f'You already have a project named "{name}".')
         return name

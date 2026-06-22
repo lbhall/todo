@@ -15,12 +15,18 @@
                 {{ project_form.name }}
                 {% if project_form.errors %}<div class="errorlist">{{ project_form.name.errors }}</div>{% endif %}
             </p>
+            <p class="color-row">
+                <label for="id_color">Color</label>
+                {{ project_form.color }}
+            </p>
             <div class="modal-buttons">
                 <button type="submit">Create</button>
                 <button type="button" class="modal-cancel">Cancel</button>
             </div>
         </form>
     </dialog>
+
+    <dialog id="project-edit-dialog" class="edit-dialog"></dialog>
 
     <div class="filter-bar">
         {% if used_tags %}
@@ -81,10 +87,11 @@
 
     <div id="project-cards">
     {% for group in groups %}
-        <details class="card draggable" open draggable="true" data-project-id="{{ group.project.pk }}">
+        <details class="card draggable" open draggable="true" data-project-id="{{ group.project.pk }}" style="--card-accent: {{ group.color }}">
             <summary>
                 <span class="card-title">{{ group.project.name }}</span>
                 <span class="card-count">{{ group.todos|length }} item{{ group.todos|length|pluralize }}</span>
+                <button type="button" class="card-color-btn" style="background:{{ group.color }}" data-project-id="{{ group.project.pk }}" title="Edit project color" aria-label="Edit project"></button>
             </summary>
             {% if group.todos %}
                 <ul class="todos">
@@ -270,6 +277,66 @@
         });
 
         container.addEventListener('drop', e => e.preventDefault());
+    })();
+    </script>
+
+    <script>
+    (function () {
+        const dlg = document.getElementById('project-edit-dialog');
+        if (!dlg) return;
+
+        function getCookie(name) {
+            const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return m ? m[2] : '';
+        }
+
+        function bindForm() {
+            const form = dlg.querySelector('form');
+            if (!form) return;
+            form.addEventListener('submit', onSubmit);
+            const cancel = dlg.querySelector('.modal-cancel');
+            if (cancel) cancel.addEventListener('click', () => dlg.close());
+            const clearBtn = dlg.querySelector('.color-clear-btn');
+            if (clearBtn) clearBtn.addEventListener('click', () => {
+                const colorInput = dlg.querySelector('input[type=color]');
+                if (colorInput) colorInput.value = '#cccccc';
+            });
+        }
+
+        async function openModal(projectId) {
+            const url = '/projects/edit/' + projectId + '/';
+            let res;
+            try {
+                res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+            } catch (err) { console.warn('project edit fetch failed', err); return; }
+            if (!res.ok) { console.warn('project edit fetch status', res.status); return; }
+            dlg.innerHTML = await res.text();
+            dlg.showModal();
+            bindForm();
+        }
+
+        async function onSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'fetch', 'X-CSRFToken': getCookie('csrftoken') },
+                body: new FormData(form),
+            });
+            if (res.status === 204) { dlg.close(); location.reload(); return; }
+            dlg.innerHTML = await res.text();
+            bindForm();
+        }
+
+        dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('.card-color-btn');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            openModal(btn.dataset.projectId);
+        });
     })();
     </script>
 {% endblock %}

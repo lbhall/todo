@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ProjectForm, SignUpForm, TodoForm
+from .forms import ProjectEditForm, ProjectForm, SignUpForm, TodoForm
 from .models import Project, Tag, Todo
 
 
@@ -63,6 +63,11 @@ def _active_status(request):
 
 DUE_CHOICES = ('today', 'future', 'past')
 
+CARD_COLORS = [
+    '#4f86c6', '#6db56d', '#e07b54', '#9b6bb5',
+    '#e8b84b', '#5bbcb5', '#e06b7d', '#7a9e7e',
+]
+
 
 def _active_due(request):
     raw = (request.GET.get('due') or '').strip().lower()
@@ -94,8 +99,12 @@ def _list_context(request, *, todo_form=None, project_form=None):
     for t in filtered:
         by_project_id.setdefault(t.project_id, []).append(t)
     groups = [
-        {'project': p, 'todos': by_project_id.get(p.pk, [])}
-        for p in request.user.projects.all()
+        {
+            'project': p,
+            'todos': by_project_id.get(p.pk, []),
+            'color': p.color if p.color else CARD_COLORS[i % len(CARD_COLORS)],
+        }
+        for i, p in enumerate(request.user.projects.all())
     ]
     used_tags = Tag.objects.filter(user=request.user, todos__isnull=False).distinct().order_by('name')
     return {
@@ -209,6 +218,23 @@ def project_add(request):
         project.save()
         return _redirect_to_list(request)
     return render(request, 'todos/list.html', _list_context(request, project_form=form), status=400)
+
+
+@login_required
+def project_edit(request, pk):
+    project = get_object_or_404(Project, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = ProjectEditForm(request.POST, instance=project, user=request.user)
+        if form.is_valid():
+            form.save()
+            if _is_modal_request(request):
+                return HttpResponse(status=204)
+            return _redirect_to_list(request)
+        if _is_modal_request(request):
+            return render(request, 'todos/project_edit_partial.html', {'form': form, 'project': project}, status=400)
+        return _redirect_to_list(request)
+    form = ProjectEditForm(instance=project, user=request.user)
+    return render(request, 'todos/project_edit_partial.html', {'form': form, 'project': project})
 
 
 @login_required

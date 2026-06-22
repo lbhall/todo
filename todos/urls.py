@@ -9,5 +9,6 @@ urlpatterns = [
     path('toggle/<int:pk>/', views.todo_toggle, name='todo_toggle'),
     path('delete/<int:pk>/', views.todo_delete, name='todo_delete'),
     path('projects/add/', views.project_add, name='project_add'),
+    path('projects/edit/<int:pk>/', views.project_edit, name='project_edit'),
     path('projects/reorder/', views.project_reorder, name='project_reorder'),
 ]

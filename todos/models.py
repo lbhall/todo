@@ -12,6 +12,7 @@ class Project(models.Model):
     name = models.CharField(max_length=80)
     sort_order = models.PositiveIntegerField(default=0)
     is_catchall = models.BooleanField(default=False)
+    color = models.CharField(max_length=7, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

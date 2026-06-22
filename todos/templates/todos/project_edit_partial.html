@@ -1,0 +1,19 @@
+<form method="post" action="{% url 'project_edit' project.pk %}" class="modal-form">
+    {% csrf_token %}
+    <h3>Edit project</h3>
+    <p>
+        <label for="id_name">Name</label>
+        {{ form.name }}
+        {% if form.name.errors %}<div class="errorlist">{{ form.name.errors }}</div>{% endif %}
+    </p>
+    <p class="color-row">
+        <label for="id_color">Color</label>
+        {{ form.color }}
+        <button type="button" class="color-clear-btn" title="Remove custom color">✕ Reset</button>
+        {% if form.color.errors %}<div class="errorlist">{{ form.color.errors }}</div>{% endif %}
+    </p>
+    <div class="modal-buttons">
+        <button type="submit">Save</button>
+        <button type="button" class="modal-cancel">Cancel</button>
+    </div>
+</form>
