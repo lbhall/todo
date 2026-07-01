@@ -88,9 +88,10 @@ def _list_context(request, *, todo_form=None, project_form=None):
         filtered = [t for t in filtered if not t.done]
     elif active_status == 'done':
         filtered = [t for t in filtered if t.done]
-    # Todos with no due_date always pass through, regardless of the active due filter.
+    # Todos with no due_date pass through for future/past, but "today" shows only
+    # todos whose due_date is exactly today.
     if active_due == 'today':
-        filtered = [t for t in filtered if t.due_date is None or t.due_date == today]
+        filtered = [t for t in filtered if t.due_date == today]
     elif active_due == 'future':
         filtered = [t for t in filtered if t.due_date is None or t.due_date > today]
     elif active_due == 'past':
