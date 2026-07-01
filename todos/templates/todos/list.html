@@ -60,6 +60,19 @@
                 <a class="chip {% if active_due == 'past' %}active{% endif %}" href="{% querystring due='past' %}">Past</a>
             </div>
         </div>
+        {% if projects %}
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+                <div class="filter-label">Projects</div>
+                <div class="filter-pills">
+                    <a class="chip clear {% if not active_project %}active{% endif %}" href="{% querystring project=None %}">All</a>
+                    {% for project in projects %}
+                        <a class="chip {% if active_project and active_project.pk == project.pk %}active{% endif %}"
+                           href="{% querystring project=project.pk %}">{{ project.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
     </div>
 
     <form class="add-form" method="post" action="{% url 'todo_add' %}">
@@ -67,6 +80,7 @@
         {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
         <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
         {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+        {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
         <div class="add-row">
             {{ todo_form.title }}
             <button type="submit">Add</button>
@@ -102,6 +116,7 @@
                                 {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
                                 <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
                                 {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+                                {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
                                 <input type="checkbox" class="todo-check" {% if todo.done %}checked{% endif %} title="Toggle done" aria-label="Mark complete">
                             </form>
                             <span class="title">
@@ -117,6 +132,7 @@
                                 {% if active_tag %}<input type="hidden" name="next_tag" value="{{ active_tag.name }}">{% endif %}
                                 <input type="hidden" name="next_status" value="{{ active_status|default:'all' }}">
                                 {% if active_due %}<input type="hidden" name="next_due" value="{{ active_due }}">{% endif %}
+                                {% if active_project %}<input type="hidden" name="next_project" value="{{ active_project.pk }}">{% endif %}
                                 <button type="submit" class="delete-btn" title="Delete" aria-label="Delete todo">✕</button>
                             </form>
                         </li>

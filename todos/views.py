@@ -74,11 +74,19 @@ def _active_due(request):
     return raw if raw in DUE_CHOICES else None
 
 
+def _active_project(request):
+    raw = (request.GET.get('project') or '').strip()
+    if not raw:
+        return None
+    return request.user.projects.filter(pk=raw).first() if raw.isdigit() else None
+
+
 def _list_context(request, *, todo_form=None, project_form=None):
     _get_or_create_catchall(request.user)  # idempotent; protects against admin deletion
     active_tag = _active_tag(request)
     active_status = _active_status(request)
     active_due = _active_due(request)
+    active_project = _active_project(request)
     today = timezone.localdate()
     todos = list(request.user.todos.select_related('project').prefetch_related('tags'))
     filtered = todos
@@ -99,21 +107,26 @@ def _list_context(request, *, todo_form=None, project_form=None):
     by_project_id = {}
     for t in filtered:
         by_project_id.setdefault(t.project_id, []).append(t)
+    projects = list(request.user.projects.all())
     groups = [
         {
             'project': p,
             'todos': by_project_id.get(p.pk, []),
             'color': p.color if p.color else CARD_COLORS[i % len(CARD_COLORS)],
         }
-        for i, p in enumerate(request.user.projects.all())
+        for i, p in enumerate(projects)
     ]
+    if active_project is not None:
+        groups = [g for g in groups if g['project'].pk == active_project.pk]
     used_tags = Tag.objects.filter(user=request.user, todos__isnull=False).distinct().order_by('name')
     return {
         'groups': groups,
+        'projects': projects,
         'used_tags': used_tags,
         'active_tag': active_tag,
         'active_status': active_status,
         'active_due': active_due,
+        'active_project': active_project,
         'todo_form': todo_form if todo_form is not None else TodoForm(user=request.user),
         'project_form': project_form if project_form is not None else ProjectForm(user=request.user),
     }
@@ -125,17 +138,20 @@ def todo_list(request):
 
 
 def _list_qs(request):
-    """Preserve tag + status + due across redirects."""
+    """Preserve tag + status + due + project across redirects."""
     params = {}
     tag = request.POST.get('next_tag') or request.GET.get('tag')
     status = request.POST.get('next_status') or request.GET.get('status')
     due = request.POST.get('next_due') or request.GET.get('due')
+    project = request.POST.get('next_project') or request.GET.get('project')
     if tag:
         params['tag'] = tag
     if status in STATUS_CHOICES or status == 'all':
         params['status'] = status
     if due in DUE_CHOICES:
         params['due'] = due
+    if project and str(project).isdigit():
+        params['project'] = project
     return ('?' + urlencode(params)) if params else ''
 
 
