@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="/var/www/emcfunleague.com/source"
-VENV="/var/www/emcfunleague.com/venv/bin"
+SOURCE_DIR="/var/www/todos.emcfunleague.com/source"
+VENV="/var/www/todos.emcfunleague.com/venv/bin"
 
 echo "==> Pulling latest code..."
 git -C "$SOURCE_DIR" pull
