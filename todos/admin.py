@@ -27,7 +27,7 @@ class TodoAdmin(admin.ModelAdmin):
 
 @admin.register(RecurringTodo)
 class RecurringTodoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'project', 'title', 'days_until_due', 'created_at')
+    list_display = ('id', 'user', 'project', 'title', 'day_of_week', 'created_at')
     list_filter = ('user', 'project', 'tags')
     search_fields = ('title',)
     filter_horizontal = ('tags',)

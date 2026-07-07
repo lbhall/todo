@@ -66,12 +66,27 @@ class Todo(models.Model):
     title = models.CharField(max_length=200)
     done = models.BooleanField(default=False)
     due_date = models.DateField(null=True, blank=True)
+    source = models.ForeignKey(
+        'RecurringTodo',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='materialized',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['done', 'id']
+        constraints = [
+            # A recurring template can produce at most one todo per due date.
+            # source=NULL (manually-created todos) is exempt: NULLs are distinct.
+            models.UniqueConstraint(
+                fields=['source', 'due_date'],
+                name='unique_recurring_todo_per_due_date',
+            ),
+        ]
 
     def __str__(self):
         return self.title
@@ -102,7 +117,6 @@ class RecurringTodo(models.Model):
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name='recurring_todos')
     title = models.CharField(max_length=200)
-    days_until_due = models.PositiveSmallIntegerField(null=True, blank=True)
     day_of_week = models.PositiveSmallIntegerField(choices=DAYS_OF_WEEK, default=6)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -111,3 +125,29 @@ class RecurringTodo(models.Model):
 
     def __str__(self):
         return self.title
+
+    def next_due_date(self, base=None):
+        """The date of the coming occurrence of day_of_week on or after base."""
+        from datetime import timedelta
+        from django.utils import timezone
+        base = base or timezone.localdate()
+        offset = (self.day_of_week - base.weekday()) % 7
+        return base + timedelta(days=offset)
+
+    def materialize(self, base=None):
+        """Create the concrete Todo for the coming week, once.
+
+        Idempotent: if a todo already exists for this template + due date
+        (e.g. the UI already seeded it, or the cron ran twice), the existing
+        one is returned instead of a duplicate. Returns (todo, created).
+        """
+        from todos.views import _get_or_create_catchall
+        project = self.project or _get_or_create_catchall(self.user)
+        todo, created = Todo.objects.get_or_create(
+            source=self,
+            due_date=self.next_due_date(base),
+            defaults={'user': self.user, 'project': project, 'title': self.title},
+        )
+        if created:
+            todo.tags.set(list(self.tags.all()))
+        return todo, created

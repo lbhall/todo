@@ -1,11 +1,10 @@
 import logging
-from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from todos.models import RecurringTodo, Todo
+from todos.models import RecurringTodo
 from todos.views import _get_or_create_catchall
 
 logger = logging.getLogger(__name__)
@@ -35,26 +34,29 @@ class Command(BaseCommand):
             .prefetch_related('tags')
         )
         created = 0
+        skipped = 0
         with transaction.atomic():
             for tpl in templates:
                 project = tpl.project or _get_or_create_catchall(tpl.user)
-                offset = (tpl.day_of_week - base.weekday()) % 7
-                due = base + timedelta(days=offset)
+                due = tpl.next_due_date(base)
                 msg = f'user={tpl.user_id} title={tpl.title!r} project={project.name!r} due={due}'
                 if dry_run:
-                    self.stdout.write(f'DRY-RUN would create: {msg}')
+                    exists = tpl.materialized.filter(due_date=due).exists()
+                    verb = 'skip (already exists)' if exists else 'create'
+                    self.stdout.write(f'DRY-RUN would {verb}: {msg}')
                     continue
-                todo = Todo.objects.create(
-                    user=tpl.user,
-                    project=project,
-                    title=tpl.title,
-                    due_date=due,
-                )
-                todo.tags.set(list(tpl.tags.all()))
-                created += 1
-                self.stdout.write(f'Created: {msg}')
+                _, was_created = tpl.materialize(base)
+                if was_created:
+                    created += 1
+                    self.stdout.write(f'Created: {msg}')
+                else:
+                    skipped += 1
+                    self.stdout.write(f'Skipped (already exists): {msg}')
             if dry_run:
                 transaction.set_rollback(True)
-        summary = f'{"DRY-RUN " if dry_run else ""}base={base} processed {len(templates)} templates, created {created} todos'
+        summary = (
+            f'{"DRY-RUN " if dry_run else ""}base={base} processed {len(templates)} '
+            f'templates, created {created} todos, skipped {skipped}'
+        )
         self.stdout.write(self.style.SUCCESS(summary))
         logger.info('create_recurring_todos: %s', summary)

@@ -174,6 +174,8 @@ def todo_add(request):
                 day_of_week=6 if dow is None else dow,
             )
             form.apply_tags(template, request.user)
+            # Create the first occurrence now; the weekly cron handles the rest.
+            template.materialize()
         else:
             todo = form.save(commit=False)
             todo.user = request.user
