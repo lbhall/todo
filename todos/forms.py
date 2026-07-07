@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import Project, Tag, Todo
+from .models import Project, RecurringTodo, Tag, Todo
 
 
 class SignUpForm(UserCreationForm):
@@ -28,6 +28,14 @@ class TodoForm(forms.ModelForm):
         required=False,
         label='Tags',
         widget=forms.TextInput(attrs={'placeholder': 'tags (comma-separated)'}),
+    )
+    recurring = forms.BooleanField(required=False, label='Recurring')
+    day_of_week = forms.TypedChoiceField(
+        choices=RecurringTodo.DAYS_OF_WEEK,
+        coerce=int,
+        required=False,
+        initial=6,
+        label='Repeats on',
     )
 
     class Meta:
@@ -59,6 +67,44 @@ class TodoForm(forms.ModelForm):
                 tag = Tag.objects.create(user=user, name=name)
             tag_objs.append(tag)
         todo.tags.set(tag_objs)
+
+
+class RecurringTodoForm(forms.ModelForm):
+    tags_text = forms.CharField(
+        required=False,
+        label='Tags',
+        widget=forms.TextInput(attrs={'placeholder': 'tags (comma-separated)'}),
+    )
+
+    class Meta:
+        model = RecurringTodo
+        fields = ['title', 'project', 'day_of_week']
+        widgets = {
+            'title': forms.TextInput(attrs={'placeholder': 'What needs doing weekly?', 'autofocus': True}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._user = user
+        if user is not None:
+            self.fields['project'].queryset = user.projects.all()
+        self.fields['project'].required = False
+        self.fields['project'].empty_label = '— no project —'
+        self.fields['day_of_week'].label = 'Repeats on'
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.fields['tags_text'].initial = ', '.join(
+                self.instance.tags.values_list('name', flat=True)
+            )
+
+    def apply_tags(self, template, user):
+        names = _split_tag_text(self.cleaned_data.get('tags_text', ''))
+        tag_objs = []
+        for name in names:
+            tag = Tag.objects.filter(user=user, name__iexact=name).first()
+            if tag is None:
+                tag = Tag.objects.create(user=user, name=name)
+            tag_objs.append(tag)
+        template.tags.set(tag_objs)
 
 
 class ProjectForm(forms.ModelForm):

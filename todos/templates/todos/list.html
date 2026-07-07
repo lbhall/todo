@@ -85,19 +85,37 @@
             {{ todo_form.title }}
             <button type="submit">Add</button>
         </div>
-        <details class="add-more" {% if todo_form.project.errors or todo_form.tags_text.errors or todo_form.due_date.errors %}open{% endif %}>
-            <summary title="Show / hide project, tags, and due date"></summary>
+        <details class="add-more" {% if todo_form.project.errors or todo_form.tags_text.errors or todo_form.due_date.errors or todo_form.day_of_week.errors %}open{% endif %}>
+            <summary title="Show / hide project, tags, due date, and recurring options"></summary>
             <div class="add-more-fields">
                 <label>Project {{ todo_form.project }}</label>
                 <label>Tags {{ todo_form.tags_text }}</label>
-                <label>Due {{ todo_form.due_date }}</label>
+                <label class="due-date-label">Due {{ todo_form.due_date }}</label>
+                <label class="recurring-check">{{ todo_form.recurring }} Recurring</label>
+                <label class="recurring-day">Repeats on {{ todo_form.day_of_week }}</label>
             </div>
         </details>
         {% if todo_form.title.errors %}<div class="errorlist">{{ todo_form.title.errors }}</div>{% endif %}
         {% if todo_form.project.errors %}<div class="errorlist">{{ todo_form.project.errors }}</div>{% endif %}
         {% if todo_form.tags_text.errors %}<div class="errorlist">{{ todo_form.tags_text.errors }}</div>{% endif %}
         {% if todo_form.due_date.errors %}<div class="errorlist">{{ todo_form.due_date.errors }}</div>{% endif %}
+        {% if todo_form.day_of_week.errors %}<div class="errorlist">{{ todo_form.day_of_week.errors }}</div>{% endif %}
     </form>
+
+    <script>
+    (function () {
+        const cb = document.querySelector('.add-form input[name="recurring"]');
+        const dayLabel = document.querySelector('.add-form .recurring-day');
+        const dueLabel = document.querySelector('.add-form .due-date-label');
+        if (!cb || !dayLabel || !dueLabel) return;
+        const sync = () => {
+            dayLabel.style.display = cb.checked ? '' : 'none';
+            dueLabel.style.display = cb.checked ? 'none' : '';
+        };
+        sync();
+        cb.addEventListener('change', sync);
+    })();
+    </script>
 
     <div id="project-cards">
     {% for group in groups %}

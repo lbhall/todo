@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ProjectEditForm, ProjectForm, SignUpForm, TodoForm
-from .models import Project, Tag, Todo
+from .forms import ProjectEditForm, ProjectForm, RecurringTodoForm, SignUpForm, TodoForm
+from .models import Project, RecurringTodo, Tag, Todo
 
 
 def _get_or_create_catchall(user):
@@ -164,12 +164,22 @@ def _redirect_to_list(request):
 def todo_add(request):
     form = TodoForm(request.POST, user=request.user)
     if form.is_valid():
-        todo = form.save(commit=False)
-        todo.user = request.user
-        if todo.project is None:
-            todo.project = _get_or_create_catchall(request.user)
-        todo.save()
-        form.apply_tags(todo, request.user)
+        project = form.cleaned_data.get('project') or _get_or_create_catchall(request.user)
+        if form.cleaned_data.get('recurring'):
+            dow = form.cleaned_data.get('day_of_week')
+            template = RecurringTodo.objects.create(
+                user=request.user,
+                project=project,
+                title=form.cleaned_data['title'],
+                day_of_week=6 if dow is None else dow,
+            )
+            form.apply_tags(template, request.user)
+        else:
+            todo = form.save(commit=False)
+            todo.user = request.user
+            todo.project = project
+            todo.save()
+            form.apply_tags(todo, request.user)
         return _redirect_to_list(request)
     return render(request, 'todos/list.html', _list_context(request, todo_form=form), status=400)
 
@@ -252,6 +262,52 @@ def project_edit(request, pk):
         return _redirect_to_list(request)
     form = ProjectEditForm(instance=project, user=request.user)
     return render(request, 'todos/project_edit_partial.html', {'form': form, 'project': project})
+
+
+@login_required
+def recurring_list(request):
+    if request.method == 'POST':
+        form = RecurringTodoForm(request.POST, user=request.user)
+        if form.is_valid():
+            template = form.save(commit=False)
+            template.user = request.user
+            if template.project is None:
+                template.project = _get_or_create_catchall(request.user)
+            template.save()
+            form.apply_tags(template, request.user)
+            return redirect('recurring_list')
+    else:
+        form = RecurringTodoForm(user=request.user)
+    templates_qs = request.user.recurring_todos.select_related('project').prefetch_related('tags')
+    return render(request, 'todos/recurring_list.html', {
+        'recurring_todos': templates_qs,
+        'recurring_form': form,
+    })
+
+
+@login_required
+def recurring_edit(request, pk):
+    template = get_object_or_404(RecurringTodo, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = RecurringTodoForm(request.POST, instance=template, user=request.user)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            if saved.project is None:
+                saved.project = _get_or_create_catchall(request.user)
+            saved.save()
+            form.apply_tags(saved, request.user)
+            return redirect('recurring_list')
+        return render(request, 'todos/recurring_edit.html', {'form': form, 'template': template}, status=400)
+    form = RecurringTodoForm(instance=template, user=request.user)
+    return render(request, 'todos/recurring_edit.html', {'form': form, 'template': template})
+
+
+@login_required
+@require_POST
+def recurring_delete(request, pk):
+    template = get_object_or_404(RecurringTodo, pk=pk, user=request.user)
+    template.delete()
+    return redirect('recurring_list')
 
 
 @login_required

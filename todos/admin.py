@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Project, Tag, Todo
+from .models import Project, RecurringTodo, Tag, Todo
 
 
 @admin.register(Project)
@@ -21,5 +21,13 @@ class TagAdmin(admin.ModelAdmin):
 class TodoAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'project', 'title', 'done', 'created_at')
     list_filter = ('done', 'user', 'project', 'tags')
+    search_fields = ('title',)
+    filter_horizontal = ('tags',)
+
+
+@admin.register(RecurringTodo)
+class RecurringTodoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'project', 'title', 'days_until_due', 'created_at')
+    list_filter = ('user', 'project', 'tags')
     search_fields = ('title',)
     filter_horizontal = ('tags',)

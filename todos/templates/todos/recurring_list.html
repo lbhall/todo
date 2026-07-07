@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Recurring todos{% endblock %}
+
+{% block header_actions %}
+    <a class="btn-new-project" href="{% url 'todo_list' %}">← Back</a>
+{% endblock %}
+
+{% block content %}
+    <p style="color:#666; font-size:.9rem;">
+        Templates below are materialized into fresh todos each Sunday by the
+        <code>create_recurring_todos</code> management command; each todo's due date
+        is set to the template's day of the coming week.
+    </p>
+
+    <form class="add-form" method="post" action="{% url 'recurring_list' %}">
+        {% csrf_token %}
+        <div class="add-row">
+            {{ recurring_form.title }}
+            <button type="submit">Add</button>
+        </div>
+        <details class="add-more" {% if recurring_form.project.errors or recurring_form.tags_text.errors or recurring_form.day_of_week.errors %}open{% endif %}>
+            <summary title="Show / hide project, tags, and day"></summary>
+            <div class="add-more-fields">
+                <label>Project {{ recurring_form.project }}</label>
+                <label>Tags {{ recurring_form.tags_text }}</label>
+                <label>Repeats on {{ recurring_form.day_of_week }}</label>
+            </div>
+        </details>
+        {% if recurring_form.title.errors %}<div class="errorlist">{{ recurring_form.title.errors }}</div>{% endif %}
+        {% if recurring_form.project.errors %}<div class="errorlist">{{ recurring_form.project.errors }}</div>{% endif %}
+        {% if recurring_form.tags_text.errors %}<div class="errorlist">{{ recurring_form.tags_text.errors }}</div>{% endif %}
+        {% if recurring_form.day_of_week.errors %}<div class="errorlist">{{ recurring_form.day_of_week.errors }}</div>{% endif %}
+    </form>
+
+    <ul class="todos">
+    {% for t in recurring_todos %}
+        <li>
+            <span class="title">
+                {{ t.title }}
+                {% if t.project %}<span class="project-tag">{{ t.project.name }}</span>{% endif %}
+                {% for tag in t.tags.all %}<span class="row-tag">{{ tag.name }}</span>{% endfor %}
+            </span>
+            <span class="row-tag">{{ t.get_day_of_week_display }}</span>
+            <a href="{% url 'recurring_edit' t.pk %}" class="edit-btn" title="Edit" aria-label="Edit recurring todo">✎</a>
+            <form class="inline" method="post" action="{% url 'recurring_delete' t.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="delete-btn" title="Delete" aria-label="Delete recurring todo">✕</button>
+            </form>
+        </li>
+    {% empty %}
+        <li style="color:#666; border:none;">No recurring todos yet — add one above.</li>
+    {% endfor %}
+    </ul>
+{% endblock %}

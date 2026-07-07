@@ -11,4 +11,7 @@ urlpatterns = [
     path('projects/add/', views.project_add, name='project_add'),
     path('projects/edit/<int:pk>/', views.project_edit, name='project_edit'),
     path('projects/reorder/', views.project_reorder, name='project_reorder'),
+    path('recurring/', views.recurring_list, name='recurring_list'),
+    path('recurring/edit/<int:pk>/', views.recurring_edit, name='recurring_edit'),
+    path('recurring/delete/<int:pk>/', views.recurring_delete, name='recurring_delete'),
 ]
