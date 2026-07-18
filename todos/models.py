@@ -63,7 +63,7 @@ class Todo(models.Model):
         related_name='todos',
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name='todos')
-    title = models.CharField(max_length=200)
+    title = models.TextField()
     done = models.BooleanField(default=False)
     due_date = models.DateField(null=True, blank=True)
     source = models.ForeignKey(
@@ -116,7 +116,7 @@ class RecurringTodo(models.Model):
         related_name='recurring_todos',
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name='recurring_todos')
-    title = models.CharField(max_length=200)
+    title = models.TextField()
     day_of_week = models.PositiveSmallIntegerField(choices=DAYS_OF_WEEK, default=6)
     created_at = models.DateTimeField(auto_now_add=True)
 

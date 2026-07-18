@@ -89,6 +89,28 @@
         dl.timestamps { margin-top: 2rem; font-size: .85rem; color: #666; display: grid; grid-template-columns: max-content 1fr; gap: .1rem .75rem; }
         dl.timestamps dt { font-weight: 600; }
         dl.timestamps dd { margin: 0; }
+        /* Rich-text entry box — one rounded container with the toolbar inside */
+        .rt-wrap { flex: 1; display: flex; flex-direction: column; gap: .45rem; min-width: 0; border: 1px solid #d5d5dd; border-radius: 12px; padding: .6rem .7rem .5rem; background: #fff; transition: border-color .12s, box-shadow .12s; }
+        .rt-wrap:focus-within { border-color: #aab4dd; box-shadow: 0 0 0 3px rgba(70,100,200,.10); }
+        textarea.rich-text { width: 100%; box-sizing: border-box; resize: none; overflow-y: auto; min-height: 1.6rem; max-height: 320px; padding: 0; font: inherit; line-height: 1.45; border: none; background: transparent; color: inherit; }
+        textarea.rich-text:focus { outline: none; }
+        textarea.rich-text::placeholder { color: #9a9aa5; }
+        .rt-toolbar { display: flex; align-items: center; gap: .15rem; }
+        .rt-toolbar button { min-width: 1.9rem; padding: .22rem .45rem; font-size: .82rem; line-height: 1.3; background: transparent; border: none; border-radius: 6px; cursor: pointer; color: #6a6a72; }
+        .rt-toolbar button:hover { background: #ececf3; color: #222; }
+        .rt-toolbar button.rt-bold { font-weight: 700; }
+        .rt-toolbar button.rt-italic { font-style: italic; }
+        .rt-toolbar .rt-submit { margin-left: auto; min-width: 0; background: #245; color: #fff; padding: .3rem .95rem; font-size: .85rem; font-weight: 500; }
+        .rt-toolbar .rt-submit:hover { background: #16304a; color: #fff; }
+        /* Rendered formatting inside a todo */
+        ul.todos li { align-items: flex-start; }
+        .title-text { display: inline; }
+        .title-text ul { margin: .25rem 0; padding-left: 1.4rem; list-style: disc outside; }
+        /* Nested inside ul.todos, whose `li` rules (flex + border) would otherwise
+           hide the marker and draw a divider between bullets. */
+        .title-text ul li { display: list-item; margin: .1rem 0; padding: 0; border-bottom: none; }
+        .title-text strong { font-weight: 700; }
+        .title-text em { font-style: italic; }
     </style>
 </head>
 <body>
@@ -110,5 +132,106 @@
 <main>
     {% block content %}{% endblock %}
 </main>
+<script>
+// Turn every <textarea class="rich-text"> into an auto-growing box with a
+// small Bold / Italic / List toolbar that inserts Markdown-ish syntax.
+// Exposed globally so dynamically-injected forms (the edit modal) can re-init.
+window.initRichText = function (root) {
+    root = root || document;
+    root.querySelectorAll('textarea.rich-text').forEach(function (ta) {
+        if (ta.dataset.rtReady) return;
+        ta.dataset.rtReady = '1';
+
+        var wrap = document.createElement('div');
+        wrap.className = 'rt-wrap';
+        var bar = document.createElement('div');
+        bar.className = 'rt-toolbar';
+
+        function autoGrow() { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+        // Re-measure next frame: the first measurement right after re-parenting
+        // can be stale before layout settles.
+        function autoGrowDeferred() { autoGrow(); requestAnimationFrame(autoGrow); }
+
+        function wrapSelection(pre, post) {
+            var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+            var sel = v.slice(s, e);
+            ta.value = v.slice(0, s) + pre + sel + post + v.slice(e);
+            if (sel) { ta.selectionStart = s + pre.length; ta.selectionEnd = e + pre.length; }
+            else { ta.selectionStart = ta.selectionEnd = s + pre.length; }
+        }
+
+        function bulletSelection() {
+            var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+            var ls = v.lastIndexOf('\n', s - 1) + 1;
+            var le = v.indexOf('\n', e); if (le === -1) le = v.length;
+            var lines = v.slice(ls, le).split('\n').map(function (ln) {
+                return /^\s*[-*]\s+/.test(ln) ? ln : '- ' + ln;
+            });
+            var block = lines.join('\n');
+            ta.value = v.slice(0, ls) + block + v.slice(le);
+            // Collapse the cursor to the end of the bulleted block so the user can
+            // type straight away instead of overwriting a selected dash.
+            ta.selectionStart = ta.selectionEnd = ls + block.length;
+        }
+
+        function mkBtn(label, cls, handler) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.className = cls; b.textContent = label; b.tabIndex = -1;
+            b.addEventListener('click', function (ev) {
+                ev.preventDefault(); handler(); ta.focus(); autoGrow();
+            });
+            return b;
+        }
+
+        bar.appendChild(mkBtn('B', 'rt-bold', function () { wrapSelection('**', '**'); }));
+        bar.appendChild(mkBtn('I', 'rt-italic', function () { wrapSelection('*', '*'); }));
+        bar.appendChild(mkBtn('• List', 'rt-list', bulletSelection));
+
+        var host = ta.parentNode;
+        host.insertBefore(wrap, ta);
+        wrap.appendChild(ta);   // textarea on top
+        wrap.appendChild(bar);  // toolbar row along the bottom
+        // When the box sits in the main add row next to its submit button, pull
+        // that button into the toolbar (bottom-right) for one unified container.
+        if (host.classList && host.classList.contains('add-row')) {
+            var submit = host.querySelector('button[type="submit"]');
+            if (submit) { submit.classList.add('rt-submit'); bar.appendChild(submit); }
+        }
+
+        ta.addEventListener('input', autoGrow);
+        ta.addEventListener('keydown', function (ev) {
+            // Ctrl/Cmd+Enter submits.
+            if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+                var form = ta.closest('form');
+                if (form) { ev.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.submit(); }
+                return;
+            }
+            // Plain Enter inside a bullet: continue the list, or exit it on an empty bullet.
+            if (ev.key === 'Enter' && !ev.shiftKey && ta.selectionStart === ta.selectionEnd) {
+                var s = ta.selectionStart, v = ta.value;
+                var ls = v.lastIndexOf('\n', s - 1) + 1;
+                var le = v.indexOf('\n', s); if (le === -1) le = v.length;
+                var line = v.slice(ls, le);
+                var m = /^(\s*[-*]\s+)(.*)$/.exec(line);
+                if (!m) return;  // not a bullet line — default newline
+                ev.preventDefault();
+                if (m[2].trim() === '') {
+                    // Empty bullet → remove it and exit the list.
+                    ta.value = v.slice(0, ls) + v.slice(le);
+                    ta.selectionStart = ta.selectionEnd = ls;
+                } else {
+                    // Continue the list with a fresh prefix at the cursor.
+                    var insert = '\n' + m[1];
+                    ta.value = v.slice(0, s) + insert + v.slice(s);
+                    ta.selectionStart = ta.selectionEnd = s + insert.length;
+                }
+                autoGrow();
+            }
+        });
+        autoGrowDeferred();
+    });
+};
+document.addEventListener('DOMContentLoaded', function () { window.initRichText(document); });
+</script>
 </body>
 </html>

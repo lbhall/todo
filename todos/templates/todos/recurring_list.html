@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load todo_extras %}
 {% block title %}Recurring todos{% endblock %}
 
 {% block header_actions %}
@@ -36,7 +37,7 @@
     {% for t in recurring_todos %}
         <li>
             <span class="title">
-                {{ t.title }}
+                <span class="title-text">{{ t.title|format_todo }}</span>
                 {% if t.project %}<span class="project-tag">{{ t.project.name }}</span>{% endif %}
                 {% for tag in t.tags.all %}<span class="row-tag">{{ tag.name }}</span>{% endfor %}
             </span>

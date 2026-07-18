@@ -42,7 +42,12 @@ class TodoForm(forms.ModelForm):
         model = Todo
         fields = ['title', 'project', 'due_date']
         widgets = {
-            'title': forms.TextInput(attrs={'placeholder': 'What needs doing?', 'autofocus': True}),
+            'title': forms.Textarea(attrs={
+                'placeholder': 'What needs doing?',
+                'autofocus': True,
+                'class': 'rich-text',
+                'rows': 1,
+            }),
             'due_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
@@ -80,7 +85,12 @@ class RecurringTodoForm(forms.ModelForm):
         model = RecurringTodo
         fields = ['title', 'project', 'day_of_week']
         widgets = {
-            'title': forms.TextInput(attrs={'placeholder': 'What needs doing weekly?', 'autofocus': True}),
+            'title': forms.Textarea(attrs={
+                'placeholder': 'What needs doing weekly?',
+                'autofocus': True,
+                'class': 'rich-text',
+                'rows': 1,
+            }),
         }
 
     def __init__(self, *args, user=None, **kwargs):

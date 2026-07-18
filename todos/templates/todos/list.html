@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load todo_extras %}
 {% block title %}My Todos{% endblock %}
 
 {% block header_actions %}
@@ -138,7 +139,7 @@
                                 <input type="checkbox" class="todo-check" {% if todo.done %}checked{% endif %} title="Toggle done" aria-label="Mark complete">
                             </form>
                             <span class="title">
-                                {{ todo.title }}
+                                <span class="title-text">{{ todo.title|format_todo }}</span>
                                 {% for t in todo.tags.all %}<span class="row-tag">{{ t.name }}</span>{% endfor %}
                             </span>
                             {% if todo.due_date %}
@@ -207,6 +208,7 @@
             form.addEventListener('submit', onSubmit);
             const cancel = dlg.querySelector('.modal-cancel');
             if (cancel) cancel.addEventListener('click', () => dlg.close());
+            if (window.initRichText) window.initRichText(dlg);
         }
 
         async function openModal(url) {
