@@ -274,7 +274,9 @@
         }
 
         function postOrder() {
-            const ids = Array.from(container.querySelectorAll('[data-project-id]'))
+            // Only the top-level cards — not the nested color button, which also
+            // carries data-project-id and would double every id (→ 400).
+            const ids = Array.from(container.querySelectorAll(':scope > [data-project-id]'))
                 .map(el => el.dataset.projectId);
             const body = new URLSearchParams();
             ids.forEach(id => body.append('order', id));
@@ -288,7 +290,7 @@
         }
 
         container.addEventListener('dragstart', e => {
-            const card = e.target.closest('[data-project-id]');
+            const card = e.target.closest('.card');
             if (!card) return;
             dragged = card;
             card.classList.add('dragging');
@@ -304,7 +306,7 @@
 
         container.addEventListener('dragover', e => {
             if (!dragged) return;
-            const target = e.target.closest('[data-project-id]');
+            const target = e.target.closest('.card');
             if (!target || target === dragged) return;
             e.preventDefault();
             const rect = target.getBoundingClientRect();
