@@ -34,6 +34,7 @@ class TodoForm(forms.ModelForm):
         choices=RecurringTodo.DAYS_OF_WEEK,
         coerce=int,
         required=False,
+        empty_value=None,
         initial=6,
         label='Repeats on',
     )
