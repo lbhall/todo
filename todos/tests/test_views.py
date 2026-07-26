@@ -193,6 +193,28 @@ class TodoAddViewTests(TestCase):
         self.assertEqual(tpl.day_of_week, 2)
         self.assertEqual(tpl.materialized.count(), 1)
 
+    def test_add_recurring_without_day_of_week_defaults_to_sunday(self):
+        # Regression: an empty day_of_week yields '' (not None) from the
+        # TypedChoiceField; the view must still fall back to the default (6)
+        # rather than passing '' into the PositiveSmallIntegerField.
+        resp = self.client.post(reverse('todo_add'), {
+            'title': 'No day given', 'recurring': 'on',
+        })
+        self.assertEqual(resp.status_code, 302)
+        tpl = RecurringTodo.objects.get(title='No day given')
+        self.assertEqual(tpl.day_of_week, 6)
+        self.assertEqual(tpl.materialized.count(), 1)
+
+    def test_add_recurring_on_monday_is_preserved(self):
+        # Guard against a `dow or 6` style fix: Monday is 0 (falsy) and must
+        # not be coerced to the Sunday default.
+        resp = self.client.post(reverse('todo_add'), {
+            'title': 'Monday thing', 'recurring': 'on', 'day_of_week': '0',
+        })
+        self.assertEqual(resp.status_code, 302)
+        tpl = RecurringTodo.objects.get(title='Monday thing')
+        self.assertEqual(tpl.day_of_week, 0)
+
     def test_add_invalid_returns_400(self):
         resp = self.client.post(reverse('todo_add'), {'title': ''})
         self.assertEqual(resp.status_code, 400)
